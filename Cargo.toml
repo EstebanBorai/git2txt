@@ -1,6 +1,6 @@
 [package]
 name = "git2txt"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2021"
 description = "Converts a Git repository to a single TXT file"
 categories = ["command-line-utilities"]

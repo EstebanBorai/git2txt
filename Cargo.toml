@@ -1,0 +1,30 @@
+[package]
+name = "git2txt"
+version = "0.0.0"
+edition = "2021"
+description = "Converts a Git repository to a single TXT file"
+categories = ["command-line-utilities"]
+homepage = "https://github.com/EstebanBorai/git2txt"
+repository = "https://github.com/EstebanBorai/git2txt"
+readme = "README.md"
+keywords = ["git", "txt", "llm", "cli"]
+license = "MIT OR Apache-2.0"
+authors = ["Esteban Borai <estebanborai@gmail.com>"]
+
+[lib]
+name = "git2txt"
+path = "src/lib.rs"
+
+[[bin]]
+name = "git2txt"
+path = "src/bin/main.rs"
+
+[dependencies]
+anyhow = "1.0.81"
+clap = { version = "4.5.4", features = ["std", "derive", "env"] }
+futures = "0.3.31"
+reqwest = { version = "0.12.4", default-features = false, features = ["rustls-tls"] }
+tempdir = "0.3.7"
+tokio = { version = "1.37.0", features = ["full"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

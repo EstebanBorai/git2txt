@@ -31,10 +31,12 @@ jobs:
       - name: publish crate
         run: cargo publish --dry-run
 
-  release:
-    name: Create Release
+  tag-bump:
+    name: Tag Bump
     needs: publish-dry-run
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,18 +58,33 @@ jobs:
         name: Set Version
         run: cargo set-version --bump ${{ inputs.version }}
 
-      - name: Set Crate Version as Environment Variable
+      - name: Set Tag as Output
+        id: set-tag
         run: |
           CARGO_TOML_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/[\"]/, "", $2); printf("%s",$2) }' Cargo.toml)
-          echo "CRATE_VERSION=$CARGO_TOML_VERSION" >> $GITHUB_ENV
+          echo "::set-output name=tag::$CARGO_TOML_VERSION"
 
       - name: Create Commit
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "chore: bump version to v$CRATE_VERSION"
+          git commit -m "chore: bump version to v${{ needs.tag-bump.outputs.tag }}"
           git push origin main --follow-tags
+
+  release:
+    name: Create Release
+    needs: tag-bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust Cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Login to Crates.io
         run: cargo login ${CRATES_IO_TOKEN}
@@ -83,7 +100,7 @@ jobs:
         with:
           script: |
             await github.request(`POST /repos/${{ github.repository }}/releases`, {
-              tag_name: "v${{ env.CRATE_VERSION }}",
+              tag_name: "v${{ needs.tag-bump.outputs.tag }}",
               generate_release_notes: true
             });
 
@@ -120,11 +137,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set Crate Version as Environment Variable
-        run: |
-          CARGO_TOML_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/[\"]/, "", $2); printf("%s",$2) }' Cargo.toml)
-          echo "CRATE_VERSION=$CARGO_TOML_VERSION" >> $GITHUB_ENV
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -151,4 +163,4 @@ jobs:
           asset_name: git2txt-${{ matrix.target }}
           file: git2txt-${{ matrix.target }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: "v${{ env.CRATE_VERSION }}"
+          tag: "v${{ needs.tag-bump.outputs.tag }}"
